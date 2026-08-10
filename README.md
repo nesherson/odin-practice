@@ -1,3 +1,3 @@
-# C Workshop
+# Odin practice
 
-A repository for exercising C programming languange.
+A repository for exercising Odin programming languange.

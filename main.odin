@@ -1,17 +1,18 @@
 package main
 
-import "core:fmt"
-import la "core:math/linalg"
-
 import rl "vendor:raylib"
 
 main :: proc() {
+	screen_width: i32 = 1280
+	screen_height: i32 = 720
+
 	rl.InitWindow(1280, 720, "Test title")
 	defer rl.CloseWindow()
 
 	player_texture: rl.Texture2D = rl.LoadTexture("player.png")
 	player_pos: [2]f32
-	speed: f32 = 50
+	player_vel: [2]f32
+	player_grounded: bool
 
 	for !rl.WindowShouldClose() {
 		input: [2]f32
@@ -21,14 +22,26 @@ main :: proc() {
 		} else if rl.IsKeyDown(.DOWN) {
 			input.y += 1
 		} else if rl.IsKeyDown(.LEFT) {
-			input.x -= 1
+			player_vel.x = -400
 		} else if rl.IsKeyDown(.RIGHT) {
-			input.x += 1
+			player_vel.x = 400
+		} else {
+			player_vel.x = 0
 		}
 
-		player_pos += la.normalize0(input) * rl.GetFrameTime() * speed
+		player_vel.y += 2000 * rl.GetFrameTime()
 
-		fmt.println(player_pos)
+		if player_grounded && rl.IsKeyPressed(.SPACE) {
+			player_vel.y = -600
+			player_grounded = false
+		}
+
+		player_pos += player_vel * rl.GetFrameTime()
+
+		if player_pos.y > f32(rl.GetScreenHeight()) - f32(player_texture.height) {
+			player_pos.y = f32(rl.GetScreenHeight()) - f32(player_texture.height)
+			player_grounded = true
+		}
 
 		rl.BeginDrawing()
 		rl.ClearBackground({160, 200, 255, 255})

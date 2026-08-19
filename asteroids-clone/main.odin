@@ -11,20 +11,21 @@ SCREEN_HEIGHT :: 720
 Player :: struct {
 	pos:  rl.Vector2,
 	angle: f32,
-	local: [3][2]f32
+	local: [3]rl.Vector2,
+	max_speed: f32,
+	velocity: rl.Vector2,
+	acceleration: f32
 }
 
 rotate_point :: proc(vector: [2]f32, angle: f32) -> [2]f32 {
 	sin := math.sin(angle)
 	cos := math.cos(angle)
 
-	temp: [2]f32 = {vector.x * cos - vector.y * sin, vector.x * sin + vector.y * cos}
-
-	return temp
+	return {vector.x * cos - vector.y * sin, vector.x * sin + vector.y * cos}
 }
 
 draw_player :: proc(player: Player) {
-	points: [3][2]f32
+	points: [3]rl.Vector2
 
 	for v, i in player.local {
 		points[i] = player.pos + rotate_point(v, player.angle)
@@ -36,6 +37,13 @@ draw_player :: proc(player: Player) {
 		rl.GREEN)
 }
 
+reset_player :: proc(player: ^Player) {
+	player.pos = {SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2}
+	player.acceleration = 0
+	player.velocity = 0
+	player.angle = 0
+}
+
 main :: proc() {
 	rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids clone")
 	defer rl.CloseWindow()
@@ -43,45 +51,43 @@ main :: proc() {
 
 	player := Player {
 		pos  = {SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2},
-		local = {{0, -60}, {-40, 40}, {40, 40}}
+		local = {{0, -40}, {-20, 15}, {20, 15}},
+		max_speed = 10,
+		velocity = 0
 	}
 
-	acceleration: f32 = 0
-	velocity: f32 = 50
-	spin_speed: f32 = f32(math.PI)
+	spin_speed: f32 = f32(math.PI) * 2
 
 	for !rl.WindowShouldClose() {
 		frame_time := rl.GetFrameTime()
 
-		// TODO: Adjust player movement ease in
-		if rl.IsKeyDown(.LEFT) {
-			player.angle -= spin_speed * frame_time
-			fmt.println(player.angle)
-		} else if rl.IsKeyDown(.RIGHT) {
-			player.angle += spin_speed * frame_time
-		} else if rl.IsKeyDown(.UP) {
-			acceleration += 5
-
-			if acceleration >= 200 {
-				acceleration = 200
-			}
-
-			fmt.println(acceleration)
-		} else if rl.IsKeyDown(.DOWN) {
-			acceleration -= 7.5
-
-			if acceleration <= 0 {
-				acceleration = 0
-			}
-		} else {
-			acceleration -= 5
-
-			if acceleration <= 0 {
-				acceleration = 0
-			}
+		if rl.IsKeyDown(.LEFT_CONTROL) && rl.IsKeyDown(.R) {
+			reset_player(&player)
 		}
 
-		player.pos.x += acceleration * frame_time
+		if rl.IsKeyDown(.LEFT) {
+			player.angle -= spin_speed * frame_time
+		}
+
+		if rl.IsKeyDown(.RIGHT) {
+			player.angle += spin_speed * frame_time
+		}
+
+		if rl.IsKeyDown(.UP) {
+			player.acceleration = math.clamp(player.acceleration + 4 * frame_time, 0, player.max_speed)
+			forward:= rotate_point({0, -1}, player.angle)
+			player.velocity = forward * player.acceleration
+		} else if rl.IsKeyDown(.DOWN) {
+			player.acceleration = math.clamp(player.acceleration - 3 * frame_time, 0, player.max_speed)
+			forward:= rotate_point({0, -1}, player.angle)
+			player.velocity = forward * player.acceleration
+		} else {
+			player.acceleration = math.clamp(player.acceleration - 3 * frame_time, 0, player.max_speed)
+			forward:= rotate_point({0, -1}, player.angle)
+			player.velocity = forward * player.acceleration
+		}
+
+		player.pos += player.velocity
 
 		rl.BeginDrawing()
 		defer rl.EndDrawing()

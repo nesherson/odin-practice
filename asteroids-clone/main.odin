@@ -1,7 +1,7 @@
 package main
 
-import "core:math"
 import "core:fmt"
+import "core:math"
 
 import rl "vendor:raylib"
 
@@ -9,12 +9,12 @@ SCREEN_WIDTH :: 1280
 SCREEN_HEIGHT :: 720
 
 Player :: struct {
-	pos:  rl.Vector2,
-	angle: f32,
-	local: [3]rl.Vector2,
+	pos:       rl.Vector2,
+	angle:     f32,
+	local:     [3]rl.Vector2,
 	max_speed: f32,
-	velocity: rl.Vector2,
-	acceleration: f32
+	velocity:  rl.Vector2,
+	speed:     f32,
 }
 
 rotate_point :: proc(vector: [2]f32, angle: f32) -> [2]f32 {
@@ -31,15 +31,12 @@ draw_player :: proc(player: Player) {
 		points[i] = player.pos + rotate_point(v, player.angle)
 	}
 
-	rl.DrawTriangleLines(points[0],
-		points[1],
-		points[2],
-		rl.GREEN)
+	rl.DrawTriangleLines(points[0], points[1], points[2], rl.GREEN)
 }
 
 reset_player :: proc(player: ^Player) {
 	player.pos = {SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2}
-	player.acceleration = 0
+	player.speed = 0
 	player.velocity = 0
 	player.angle = 0
 }
@@ -50,18 +47,19 @@ main :: proc() {
 	rl.SetTargetFPS(60)
 
 	player := Player {
-		pos  = {SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2},
-		local = {{0, -40}, {-20, 15}, {20, 15}},
-		max_speed = 10,
-		velocity = 0
+		pos       = {SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2},
+		local     = {{0, -40}, {-20, 15}, {20, 15}},
+		max_speed = 500,
+		velocity  = 0,
 	}
 
 	spin_speed: f32 = f32(math.PI) * 2
+	forward: [2]f32
 
 	for !rl.WindowShouldClose() {
 		frame_time := rl.GetFrameTime()
 
-		if rl.IsKeyDown(.LEFT_CONTROL) && rl.IsKeyDown(.R) {
+		if rl.IsKeyDown(.LEFT_CONTROL) && rl.IsKeyPressed(.R) {
 			reset_player(&player)
 		}
 
@@ -74,20 +72,14 @@ main :: proc() {
 		}
 
 		if rl.IsKeyDown(.UP) {
-			player.acceleration = math.clamp(player.acceleration + 4 * frame_time, 0, player.max_speed)
-			forward:= rotate_point({0, -1}, player.angle)
-			player.velocity = forward * player.acceleration
-		} else if rl.IsKeyDown(.DOWN) {
-			player.acceleration = math.clamp(player.acceleration - 3 * frame_time, 0, player.max_speed)
-			forward:= rotate_point({0, -1}, player.angle)
-			player.velocity = forward * player.acceleration
+			player.speed = math.clamp(player.speed + 150 * frame_time, 0, player.max_speed)
+			forward = rotate_point({0, -1}, player.angle)
 		} else {
-			player.acceleration = math.clamp(player.acceleration - 3 * frame_time, 0, player.max_speed)
-			forward:= rotate_point({0, -1}, player.angle)
-			player.velocity = forward * player.acceleration
+			player.speed = math.clamp(player.speed - 80 * frame_time, 0, player.max_speed)
 		}
 
-		player.pos += player.velocity
+		player.velocity = forward * player.speed
+		player.pos += player.velocity * frame_time
 
 		rl.BeginDrawing()
 		defer rl.EndDrawing()

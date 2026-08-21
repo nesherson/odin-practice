@@ -63,6 +63,11 @@ main :: proc() {
 			reset_player(&player)
 		}
 
+		if rl.IsKeyDown(.LEFT_CONTROL) && rl.IsKeyPressed(.F) {
+			test: rl.Vector2 = {0, -1}
+			fmt.println(test * 0.2)
+		}
+
 		if rl.IsKeyDown(.LEFT) {
 			player.angle -= spin_speed * frame_time
 		}
@@ -73,7 +78,9 @@ main :: proc() {
 
 		if rl.IsKeyDown(.UP) {
 			player.speed = math.clamp(player.speed + 150 * frame_time, 0, player.max_speed)
-			forward = rotate_point({0, -1}, player.angle)
+			fmt.println(player.speed / 1000)
+
+			forward = rotate_point({0, -1}, player.angle * ((player.speed + player.max_speed) / 1000 ))
 		} else {
 			player.speed = math.clamp(player.speed - 80 * frame_time, 0, player.max_speed)
 		}
